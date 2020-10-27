@@ -30,9 +30,11 @@ from codecs import lookup as lookup_codec
 from extension_map import FILE_EXT_MAP
 
 __author__ = "Christopher Bull, Shawn Richards"
-__date__ = "25/11/2019"  # in "dd/mm/yyyy" format
-__version__ = "2.0.0"
+__date__ = "30/08/2020"  # in "dd/mm/yyyy" format
+__version__ = "2.0.1"
 __status__ = "Prototype"
+
+DEBUG = True
 
 MAX_FILE_NAME_LEN = 259
 PATH_STORAGE_FN = "OrigFNames.txt"
@@ -227,7 +229,8 @@ class learnUserObj(object):
             dest = os.path.abspath(f"{dest_folder}/{full_fn}")
 
         if not os.path.exists(dest_folder):
-            os.makedirs(dest_folder)
+            if not DEBUG:
+                os.makedirs(dest_folder)
             
         if orig_path != dest:
             print(f"Warning! File name too long:\n'{orig_path}' shortened to '{dest}'", file=stderr)
@@ -236,8 +239,9 @@ class learnUserObj(object):
             with open(storage_file_path, 'a') as path_file:
                 print(f"'{dest}' ==> '{orig_path}'", file=path_file)
             
-        with open(dest, 'w+b') as out_file:
-            shutil.copyfileobj(response, out_file)
+        if not DEBUG:
+            with open(dest, 'w+b') as out_file:
+                shutil.copyfileobj(response, out_file)
     
     
     def get_content_type(self, response):
@@ -340,7 +344,7 @@ def extract_download_info(courseResourceText):
     table_str_s = r'<div role="main"><span id="maincontent"></span><table class="generaltable mod_index">'
     table_str_e = r'</table>\n*</div>'
     cell_str = r'<td class="cell c1" style="text-align:left;">(.*?)</td>'
-    text_str = r'href="(.*)".*src=".*/(?:icon|f/(\w+))".*alt="(\w*)" />\s?(.+)</a>'
+    text_str = r'href="(.*)".*src=".*/(?:icon|f/(\w+))".*alt="([\w|\s]*)" />\s?(.+)</a>'
     
     table_re_s = re.compile(table_str_s)
     table_re_e = re.compile(table_str_e)
@@ -377,6 +381,9 @@ def get_type(item_type, file_type, url):
         
     elif item_type == "Page":
         type = "page"
+    
+    elif item_type == "Course Material":
+        type = "material"
         
     else:
         print(f"An item of unknown type '{item_type}' was found, this item will be ignored!")
@@ -391,6 +398,8 @@ def extract_pdf_url(learnUser, url):
     
     if learn_url_re.match(url):
         dl_page_text = learnUser.openWebpage(url)
+        with open('ouput.txt', 'w') as opfile:
+            print(dl_page_text.encode('cp850','replace').decode('cp850'), file=opfile)
         dl_url_re = re.compile(
             'Click <a href="(.*?)">(.*?)\.pdf</a> link to download the file\.'
             )
